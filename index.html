@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AortaFlow: learning flow components in aortic stenosis</title>
+<meta name="description" content="A latent-ODE model that learns the full velocity field through the stenotic aorta, reconstructs it in continuous time, and uncovers two distinct flow components across 159 patients.">
+<meta property="og:title" content="AortaFlow">
+<meta property="og:description" content="Beyond peak velocity: a latent-ODE model of aortic flow that finds two distinct flow components in aortic stenosis.">
+<meta property="og:image" content="https://violayfw.github.io/aortaflow/assets/fig1-architecture.png">
+<meta property="og:url" content="https://violayfw.github.io/aortaflow/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌊</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F3F5F6; --ink:#17202B; --muted:#56616F; --rule:#D3D9DF;
+  --flow:#116C7E; --fast:#C0392B; --soft:#E8EDF1;
+  --serif:"Newsreader", Georgia, "Times New Roman", serif;
+  --sans:"Public Sans", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#11161C; --ink:#E4E8EC; --muted:#9BA6B2; --rule:#2B343E;
+    --flow:#5FB8C9; --fast:#E56A5B; --soft:#1A212A;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#11161C; --ink:#E4E8EC; --muted:#9BA6B2; --rule:#2B343E;
+  --flow:#5FB8C9; --fast:#E56A5B; --soft:#1A212A;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:1.0625rem;line-height:1.6}
+img{max-width:100%;height:auto;display:block}
+.plate img{background:#FFFFFF;filter:none}
+a{color:var(--flow);text-underline-offset:3px}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--fast);outline-offset:3px;border-radius:2px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 1.5rem}
+.text{max-width:40rem}
+
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:2.5rem;align-items:center;padding:4.5rem 0 3.5rem;border-bottom:1px solid var(--rule)}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(3rem,8vw,5.6rem);line-height:.95;letter-spacing:-.02em;margin:0 0 1.5rem}
+.lede{font-family:var(--serif);font-size:clamp(1.25rem,2.4vw,1.55rem);line-height:1.4;margin:0 0 1.75rem;max-width:32rem}
+.status{list-style:none;padding:0;margin:0 0 1.75rem;display:grid;gap:.5rem}
+.status li{display:flex;gap:.65rem;align-items:baseline;font-weight:500}
+.status li::before{content:"";flex:none;width:.55rem;height:.55rem;border-radius:50%;background:var(--flow);transform:translateY(-.05rem)}
+.status li.open::before{background:transparent;border:1.5px solid var(--flow)}
+.byline{color:var(--muted);font-size:.95rem;margin:0}
+.byline strong{color:var(--ink);font-weight:600}
+.pulse{width:100%}
+.pulse .ax{stroke:var(--rule);stroke-width:1}
+.pulse .w1{fill:none;stroke:var(--fast);stroke-width:2.4;stroke-linecap:round}
+.pulse .w2{fill:none;stroke:var(--flow);stroke-width:2.4;stroke-linecap:round}
+.pulse text{font-family:var(--sans);font-size:12px;fill:var(--muted)}
+.pulse .l1{fill:var(--fast);font-weight:600}
+.pulse .l2{fill:var(--flow);font-weight:600}
+@media (prefers-reduced-motion:no-preference){
+  .pulse .w1,.pulse .w2{stroke-dasharray:640;stroke-dashoffset:640;animation:trace 1.6s .3s ease-out forwards}
+  .pulse .w2{animation-delay:.6s}
+  .pulse .l1,.pulse .l2,.pulse .dot{opacity:0;animation:show .6s 1.9s ease-out forwards}
+  @keyframes trace{to{stroke-dashoffset:0}}
+  @keyframes show{to{opacity:1}}
+}
+
+section{padding:3.5rem 0;border-bottom:1px solid var(--rule)}
+h2{font-family:var(--serif);font-weight:500;font-size:clamp(1.8rem,3.6vw,2.4rem);line-height:1.15;margin:0 0 1.25rem;letter-spacing:-.01em}
+h3{font-family:var(--serif);font-weight:600;font-size:1.4rem;line-height:1.25;margin:2.75rem 0 .75rem}
+p{margin:0 0 1rem}
+.parts{list-style:none;padding:0;margin:1.5rem 0;display:grid;gap:1rem}
+.parts li{padding-left:1.1rem;border-left:3px solid var(--flow)}
+.parts b{display:block;font-weight:600}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+figure{margin:2rem 0 2.5rem}
+.plate{background:#FFFFFF;color-scheme:light;border:1px solid var(--rule);border-radius:6px;padding:1rem}
+figure.narrow .plate{max-width:560px}
+figure.mid .plate{max-width:780px}
+figcaption{color:var(--muted);font-size:.93rem;line-height:1.55;margin-top:.75rem;max-width:44rem}
+figcaption b{color:var(--ink);font-weight:600}
+
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}
+.pair .plate{padding:.75rem}
+.pair h4{margin:0 0 .5rem;font-family:var(--sans);font-size:.95rem;font-weight:600;color:var(--ink)}
+.pair .one h4{color:var(--fast)}
+.pair .two h4{color:var(--flow)}
+
+table{border-collapse:collapse;width:100%;margin:1.5rem 0;font-size:.98rem}
+th,td{text-align:left;padding:.65rem .5rem;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:.88rem;letter-spacing:.02em;text-transform:uppercase}
+td:first-child{font-weight:500}
+.one-col{color:var(--fast)}
+.two-col{color:var(--flow)}
+
+.honest{background:var(--soft);border-radius:6px;padding:1rem 1.25rem;margin-top:1.5rem;font-size:.97rem}
+.pubs{list-style:none;padding:0;margin:0}
+.pubs li{display:grid;grid-template-columns:11rem 1fr;gap:1rem;padding:.9rem 0;border-top:1px solid var(--rule)}
+.pubs li:last-child{border-bottom:1px solid var(--rule)}
+.pubs .what{color:var(--muted)}
+details{margin-top:1rem;border-top:1px solid var(--rule);padding-top:1rem}
+summary{cursor:pointer;font-weight:600}
+details ul{padding-left:1.2rem;margin:1rem 0 0}
+details li{margin-bottom:.5rem}
+footer{padding:3rem 0 4rem;color:var(--muted);font-size:.95rem}
+footer p{max-width:40rem}
+@media (max-width:760px){
+  .hero{grid-template-columns:1fr;padding-top:3rem}
+  .pulse{order:-1;max-width:420px}
+  .pair{grid-template-columns:1fr}
+  .pubs li{grid-template-columns:1fr;gap:.2rem}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<header class="hero">
+  <div>
+    <h1>AortaFlow</h1>
+    <p class="lede">A latent-ODE model that learns how blood actually moves through the stenotic aorta, not just how fast it peaks.</p>
+    <ul class="status">
+      <li>Two distinct flow components found across 159 patients</li>
+      <li class="open">Manuscript in preparation</li>
+    </ul>
+    <p class="byline"><strong>Yufan (Viola) Wu</strong>, Yusuf A. Ozturk, Fanwei Kong, Jessica Wagenseil<br>Washington University in St. Louis</p>
+  </div>
+  <svg class="pulse" viewBox="25 35 440 168" role="img" aria-labelledby="pulse-t">
+    <title id="pulse-t">Two aortic velocity waveforms over one cardiac cycle: one with a high early peak, one with a lower, later, broader peak.</title>
+    <line class="ax" x1="40" y1="170" x2="455" y2="170"/>
+    <path class="w1" d="M 40.0 168.6 L 42.0 168.3 L 44.0 167.9 L 46.0 167.4 L 48.0 166.8 L 50.1 166.1 L 52.1 165.2 L 54.1 164.3 L 56.1 163.1 L 58.1 161.8 L 60.1 160.3 L 62.1 158.6 L 64.1 156.6 L 66.1 154.4 L 68.1 151.9 L 70.2 149.2 L 72.2 146.1 L 74.2 142.8 L 76.2 139.2 L 78.2 135.3 L 80.2 131.1 L 82.2 126.7 L 84.2 122.0 L 86.2 117.2 L 88.2 112.2 L 90.3 107.0 L 92.3 101.8 L 94.3 96.6 L 96.3 91.4 L 98.3 86.4 L 100.3 81.5 L 102.3 76.9 L 104.3 72.6 L 106.3 68.7 L 108.3 65.2 L 110.4 62.2 L 112.4 59.8 L 114.4 58.0 L 116.4 56.8 L 118.4 56.3 L 120.4 56.5 L 122.4 57.4 L 124.4 58.9 L 126.4 61.1 L 128.4 63.9 L 130.5 67.3 L 132.5 71.3 L 134.5 75.8 L 136.5 80.7 L 138.5 85.9 L 140.5 91.5 L 142.5 97.2 L 144.5 103.2 L 146.5 109.2 L 148.5 115.3 L 150.6 121.3 L 152.6 127.3 L 154.6 133.1 L 156.6 138.7 L 158.6 144.1 L 160.6 149.3 L 162.6 154.2 L 164.6 158.8 L 166.6 163.2 L 168.6 167.2 L 170.7 170.9 L 172.7 174.3 L 174.7 177.4 L 176.7 180.2 L 178.7 182.7 L 180.7 185.0 L 182.7 187.1 L 184.7 188.9 L 186.7 190.4 L 188.7 191.8 L 190.8 193.0 L 192.8 194.0 L 194.8 194.9 L 196.8 195.6 L 198.8 196.1 L 200.8 196.6 L 202.8 196.9 L 204.8 197.1 L 206.8 197.2 L 208.8 197.2 L 210.9 197.1 L 212.9 197.0 L 214.9 196.7 L 216.9 196.4 L 218.9 196.1 L 220.9 195.6 L 222.9 195.1 L 224.9 194.6 L 226.9 194.0 L 228.9 193.4 L 231.0 192.8 L 233.0 192.1 L 235.0 191.4 L 237.0 190.6 L 239.0 189.9 L 241.0 189.1 L 243.0 188.3 L 245.0 187.5 L 247.0 186.7 L 249.0 186.0 L 251.1 185.2 L 253.1 184.4 L 255.1 183.6 L 257.1 182.9 L 259.1 182.1 L 261.1 181.4 L 263.1 180.7 L 265.1 180.0 L 267.1 179.4 L 269.1 178.7 L 271.2 178.1 L 273.2 177.5 L 275.2 177.0 L 277.2 176.4 L 279.2 175.9 L 281.2 175.5 L 283.2 175.0 L 285.2 174.6 L 287.2 174.2 L 289.2 173.8 L 291.3 173.5 L 293.3 173.2 L 295.3 172.9 L 297.3 172.6 L 299.3 172.3 L 301.3 172.1 L 303.3 171.9 L 305.3 171.7 L 307.3 171.5 L 309.3 171.4 L 311.4 171.2 L 313.4 171.1 L 315.4 171.0 L 317.4 170.8 L 319.4 170.7 L 321.4 170.7 L 323.4 170.6 L 325.4 170.5 L 327.4 170.4 L 329.4 170.4 L 331.5 170.3 L 333.5 170.3 L 335.5 170.3 L 337.5 170.2 L 339.5 170.2 L 341.5 170.2 L 343.5 170.1 L 345.5 170.1 L 347.5 170.1 L 349.5 170.1 L 351.6 170.1 L 353.6 170.1 L 355.6 170.1 L 357.6 170.0 L 359.6 170.0 L 361.6 170.0 L 363.6 170.0 L 365.6 170.0 L 367.6 170.0 L 369.6 170.0 L 371.7 170.0 L 373.7 170.0 L 375.7 170.0 L 377.7 170.0 L 379.7 170.0 L 381.7 170.0 L 383.7 170.0 L 385.7 170.0 L 387.7 170.0 L 389.7 170.0 L 391.8 170.0 L 393.8 170.0 L 395.8 170.0 L 397.8 170.0 L 399.8 170.0 L 401.8 170.0 L 403.8 170.0 L 405.8 170.0 L 407.8 170.0 L 409.8 170.0 L 411.9 170.0 L 413.9 170.0 L 415.9 170.0 L 417.9 170.0 L 419.9 170.0 L 421.9 170.0 L 423.9 170.0 L 425.9 170.0 L 427.9 170.0 L 429.9 170.0 L 432.0 170.0 L 434.0 170.0 L 436.0 170.0 L 438.0 170.0 L 440.0 170.0"/>
+    <path class="w2" d="M 40.0 167.9 L 42.0 167.6 L 44.0 167.2 L 46.0 166.8 L 48.0 166.3 L 50.1 165.8 L 52.1 165.3 L 54.1 164.6 L 56.1 163.9 L 58.1 163.1 L 60.1 162.3 L 62.1 161.4 L 64.1 160.3 L 66.1 159.2 L 68.1 158.0 L 70.2 156.7 L 72.2 155.3 L 74.2 153.8 L 76.2 152.2 L 78.2 150.5 L 80.2 148.7 L 82.2 146.7 L 84.2 144.7 L 86.2 142.6 L 88.2 140.3 L 90.3 138.0 L 92.3 135.6 L 94.3 133.1 L 96.3 130.6 L 98.3 128.0 L 100.3 125.3 L 102.3 122.6 L 104.3 119.9 L 106.3 117.2 L 108.3 114.4 L 110.4 111.7 L 112.4 109.1 L 114.4 106.5 L 116.4 104.0 L 118.4 101.5 L 120.4 99.2 L 122.4 97.0 L 124.4 94.9 L 126.4 93.0 L 128.4 91.3 L 130.5 89.8 L 132.5 88.5 L 134.5 87.4 L 136.5 86.5 L 138.5 85.8 L 140.5 85.4 L 142.5 85.2 L 144.5 85.3 L 146.5 85.6 L 148.5 86.2 L 150.6 87.0 L 152.6 88.0 L 154.6 89.3 L 156.6 90.8 L 158.6 92.5 L 160.6 94.4 L 162.6 96.5 L 164.6 98.7 L 166.6 101.1 L 168.6 103.7 L 170.7 106.3 L 172.7 109.1 L 174.7 112.0 L 176.7 114.9 L 178.7 117.8 L 180.7 120.8 L 182.7 123.9 L 184.7 126.9 L 186.7 129.9 L 188.7 132.9 L 190.8 135.8 L 192.8 138.7 L 194.8 141.5 L 196.8 144.2 L 198.8 146.9 L 200.8 149.4 L 202.8 151.9 L 204.8 154.3 L 206.8 156.6 L 208.8 158.7 L 210.9 160.8 L 212.9 162.7 L 214.9 164.5 L 216.9 166.2 L 218.9 167.9 L 220.9 169.4 L 222.9 170.8 L 224.9 172.1 L 226.9 173.3 L 228.9 174.4 L 231.0 175.4 L 233.0 176.4 L 235.0 177.2 L 237.0 178.0 L 239.0 178.7 L 241.0 179.4 L 243.0 179.9 L 245.0 180.5 L 247.0 180.9 L 249.0 181.3 L 251.1 181.7 L 253.1 182.0 L 255.1 182.3 L 257.1 182.5 L 259.1 182.7 L 261.1 182.8 L 263.1 183.0 L 265.1 183.1 L 267.1 183.1 L 269.1 183.2 L 271.2 183.2 L 273.2 183.2 L 275.2 183.1 L 277.2 183.1 L 279.2 183.0 L 281.2 182.9 L 283.2 182.8 L 285.2 182.7 L 287.2 182.5 L 289.2 182.4 L 291.3 182.2 L 293.3 182.0 L 295.3 181.8 L 297.3 181.6 L 299.3 181.4 L 301.3 181.2 L 303.3 180.9 L 305.3 180.7 L 307.3 180.4 L 309.3 180.2 L 311.4 179.9 L 313.4 179.7 L 315.4 179.4 L 317.4 179.1 L 319.4 178.9 L 321.4 178.6 L 323.4 178.3 L 325.4 178.1 L 327.4 177.8 L 329.4 177.5 L 331.5 177.3 L 333.5 177.0 L 335.5 176.7 L 337.5 176.5 L 339.5 176.2 L 341.5 175.9 L 343.5 175.7 L 345.5 175.5 L 347.5 175.2 L 349.5 175.0 L 351.6 174.7 L 353.6 174.5 L 355.6 174.3 L 357.6 174.1 L 359.6 173.9 L 361.6 173.7 L 363.6 173.5 L 365.6 173.3 L 367.6 173.1 L 369.6 173.0 L 371.7 172.8 L 373.7 172.6 L 375.7 172.5 L 377.7 172.3 L 379.7 172.2 L 381.7 172.1 L 383.7 171.9 L 385.7 171.8 L 387.7 171.7 L 389.7 171.6 L 391.8 171.5 L 393.8 171.4 L 395.8 171.3 L 397.8 171.2 L 399.8 171.1 L 401.8 171.0 L 403.8 171.0 L 405.8 170.9 L 407.8 170.8 L 409.8 170.8 L 411.9 170.7 L 413.9 170.6 L 415.9 170.6 L 417.9 170.5 L 419.9 170.5 L 421.9 170.5 L 423.9 170.4 L 425.9 170.4 L 427.9 170.4 L 429.9 170.3 L 432.0 170.3 L 434.0 170.3 L 436.0 170.2 L 438.0 170.2 L 440.0 170.2"/>
+    <circle class="dot" cx="118.4" cy="56.3" r="3" fill="var(--fast)"/>
+    <circle class="dot" cx="142.5" cy="85.2" r="3" fill="var(--flow)"/>
+    <text class="l1" x="128" y="52">high, early peak</text>
+    <text class="l2" x="230" y="78">lower, later, broader</text>
+    <text x="40" y="192">one cardiac cycle</text>
+    <text x="455" y="192" text-anchor="end">same diagnosis, different flow</text>
+  </svg>
+</header>
+
+<section aria-labelledby="why">
+  <div class="text">
+    <h2 id="why">One number decides the diagnosis</h2>
+    <p>Aortic stenosis is common in older adults. Between 2 and 9 percent of Americans over 65 are diagnosed with it.</p>
+    <p>The diagnosis rests mainly on one measurement: peak velocity, the fastest speed blood reaches as it leaves the valve.</p>
+    <p>But patients who share the same peak velocity do not share the same flow. Blood can hug the wall or stay near the center. It can peak early or late. It can stay organized or swirl.</p>
+    <p>These differences matter. Disturbed flow acts on the aortic wall over years, and is linked to dissection and thrombosis.</p>
+    <p>AortaFlow learns the whole flow field instead of one number, and then asks whether patients naturally fall into different flow types.</p>
+  </div>
+</section>
+
+<section aria-labelledby="how">
+  <div class="text">
+    <h2 id="how">How it works</h2>
+    <p>The input is the full 3D velocity field through the aorta over one cardiac cycle, for <span class="num">159</span> patients.</p>
+    <p>That is far too much data to model point by point, so the pipeline has four steps.</p>
+    <ul class="parts">
+      <li><b>Compress each snapshot.</b>Proper orthogonal decomposition (POD) reduces each instant of the 3D flow field to 15 numbers, keeping the dominant flow structures.</li>
+      <li><b>Read the history.</b>An ODE-RNN encoder reads the sequence of 50 snapshots and infers a single starting state for that patient.</li>
+      <li><b>Evolve it in continuous time.</b>A latent ODE moves that state forward. Because it is a differential equation, flow can be evaluated at <em>any</em> time point, not only at the sampled frames.</li>
+      <li><b>Decode back to flow.</b>An MLP decoder turns the state at any time into POD coefficients, which expand back into a full 3D velocity field.</li>
+    </ul>
+    <p>At inference, the starting state is refined for each new patient with a short gradient optimization, so the model fits an unseen case without retraining.</p>
+  </div>
+  <figure>
+    <div class="plate"><img src="assets/fig1-architecture.png" alt="Pipeline diagram: aortic velocity field goes through POD projection into 15 coefficients per snapshot, an ODE-RNN encoder infers the initial latent state, a latent ODE evolves it, and an MLP decoder reconstructs the coefficients at each time." width="2048" height="907"></div>
+    <figcaption><b>Figure 1.</b> The AortaFlow pipeline, from 3D velocity field to latent trajectory and back.</figcaption>
+  </figure>
+</section>
+
+<section aria-labelledby="fidelity">
+  <div class="text">
+    <h2 id="fidelity">It reproduces the flow faithfully</h2>
+    <p>Predicted flow tracks the ground truth closely across the cardiac cycle, with <span class="num">R² = 0.85</span> for velocity.</p>
+    <p>The same model also recovers pressure with <span class="num">R² = 0.87</span>, even though pressure was not the focus. It outperformed several baselines.</p>
+  </div>
+  <figure class="mid">
+    <div class="plate"><img src="assets/fig2-pod-prediction.jpg" alt="Four line plots comparing ground truth and predicted POD coefficients over the normalized cardiac cycle for the first two velocity modes and the first two pressure modes; the curves overlap closely." width="2048" height="1587" loading="lazy"></div>
+    <figcaption><b>Figure 2.</b> Ground truth (pink) and prediction (blue) for a representative patient. (A, B) First two velocity modes. (C, D) First two pressure modes.</figcaption>
+  </figure>
+</section>
+
+<section aria-labelledby="pheno">
+  <div class="text">
+    <h2 id="pheno">Two flow components emerge</h2>
+    <p>Each patient's flow becomes a single trajectory in the learned space. When we cluster those trajectories, the cohort splits cleanly in two.</p>
+    <p>Nobody labeled these groups. They came out of the flow itself.</p>
+  </div>
+  <figure class="narrow">
+    <div class="plate"><img src="assets/fig3-phenotypes.png" alt="Scatter plot of patients in the first two dimensions of the latent trajectory space, with two overlapping cluster ellipses: one group of 41 patients and one of 118." width="489" height="357" loading="lazy"></div>
+    <figcaption><b>Figure 3.</b> The cohort in latent trajectory space. Component 0 holds 41 patients, component 1 holds 118.</figcaption>
+  </figure>
+
+  <div class="text">
+    <p>Decoding each component back into a velocity field shows what separates them.</p>
+  </div>
+  <div class="pair">
+    <figure class="one">
+      <h4>Component 0 &nbsp;·&nbsp; n = 41</h4>
+      <div class="plate"><img src="assets/component0-velocity.gif" alt="Animated velocity vectors through the aorta over the cardiac cycle for component 0, reaching brighter, higher velocities." width="529" height="472" loading="lazy"></div>
+      <figcaption>Fast and early. Higher peak and mean velocity, with the peak reached sooner and closer to the center of the lumen.</figcaption>
+    </figure>
+    <figure class="two">
+      <h4>Component 1 &nbsp;·&nbsp; n = 118</h4>
+      <div class="plate"><img src="assets/component1-velocity.gif" alt="Animated velocity vectors through the aorta over the cardiac cycle for component 1, with lower velocities sustained longer." width="529" height="472" loading="lazy"></div>
+      <figcaption>Slower and later. The peak arrives later, sits further from the center, and the flow is more concentrated in time.</figcaption>
+    </figure>
+  </div>
+
+  <div class="text">
+    <h3>They differ in more than speed</h3>
+    <p>Eight flow features separate the two groups, and speed is only one of them.</p>
+    <p>Component 1 is the slower group. It has a lower peak velocity, a lower mean velocity, and a gentler slowdown after the peak.</p>
+    <p>But on every other measure, component 1 is the higher one. Its peak comes later in the cycle, sits further from the center of the lumen, arrives at a larger angle, is more concentrated in time, and is accompanied by greater flow displacement in the ascending aorta.</p>
+    <table>
+      <thead><tr><th>Flow feature</th><th class="one-col">Component 0 (n = 41)</th><th class="two-col">Component 1 (n = 118)</th></tr></thead>
+      <tbody>
+        <tr><td>Peak velocity</td><td>Higher</td><td>Lower</td></tr>
+        <tr><td>Mean velocity</td><td>Higher</td><td>Lower</td></tr>
+        <tr><td>Deceleration after peak</td><td>Steeper</td><td>Gentler</td></tr>
+        <tr><td>Time of peak</td><td>Earlier</td><td>Later</td></tr>
+        <tr><td>Peak radius</td><td>Nearer the center</td><td>Further out</td></tr>
+        <tr><td>Peak angle</td><td>Lower</td><td>Higher</td></tr>
+        <tr><td>Time concentration</td><td>Lower</td><td>Higher</td></tr>
+        <tr><td>Ascending flow displacement</td><td>Smaller</td><td>Larger</td></tr>
+      </tbody>
+    </table>
+    <p>This is the important part. The slower group is not simply the milder group. Its flow peaks further from the center and is more displaced in the ascending aorta, and those are exactly the patterns linked to long-term wall damage.</p>
+    <p>A peak-velocity reading alone would put these two groups in the same box.</p>
+  </div>
+  <figure>
+    <div class="plate"><img src="assets/fig4-flow-features.jpg" alt="Eight dot plots comparing the two components on peak time, peak normalized radius, peak angle, time concentration, peak velocity, mean velocity, ascending flow displacement, and deceleration, with significance markers." width="3057" height="2067" loading="lazy"></div>
+    <figcaption><b>Figure 4.</b> Flow features by component. All eight differ significantly between the two groups.</figcaption>
+  </figure>
+</section>
+
+<section aria-labelledby="matters">
+  <div class="text">
+    <h2 id="matters">Why this matters</h2>
+    <p>AortaFlow turns a full 3D, time-varying flow field into a small state that a computer can carry around, compare, and evolve forward.</p>
+    <ul class="parts">
+      <li><b>Flow on demand, without a new simulation.</b>Once trained, the model produces the velocity field at any point in the cardiac cycle in a fraction of the time a full CFD run takes.</li>
+      <li><b>A flow type, not just a number.</b>Flow type is a richer descriptor than peak velocity, and it can be assigned automatically. It gives a clinician a second axis of information.</li>
+      <li><b>Continuous time by construction.</b>Because the core is a differential equation, the model handles irregular sampling and can interpolate between frames. That fits real imaging data, which is rarely evenly spaced.</li>
+      <li><b>A building block for a digital twin.</b>Pair the flow model with a shape model and you have both the geometry and the hemodynamics of a patient in one compact representation.</li>
+    </ul>
+    <p class="honest">These results are from a single cohort and no clinical outcomes are attached yet. Linking component to long-term outcome is the next step.</p>
+  </div>
+</section>
+
+<section aria-labelledby="more">
+  <div class="text">
+    <h2 id="more">Status and details</h2>
+    <ul class="pubs">
+      <li><span>Manuscript</span><span class="what">In preparation</span></li>
+      <li><span>Code</span><span class="what">To be released with the publication</span></li>
+      <li><span>Companion project</span><span class="what"><a href="https://violayfw.github.io/beyond-diameter/">Beyond Diameter</a>, a generative shape model of the aorta</span></li>
+    </ul>
+
+    <details>
+      <summary>Technical details</summary>
+      <ul>
+        <li><b>Data.</b> Stabilized aortic flow for 159 patients, 50 snapshots per cardiac cycle, velocity in cylindrical components (v<sub>s</sub>, v<sub>r</sub>, v<sub>θ</sub>) along the vessel centerline.</li>
+        <li><b>Reduction.</b> POD projection of the mean-subtracted field onto 15 modes per snapshot.</li>
+        <li><b>Model.</b> Variational autoencoder with a latent ODE core: ODE-RNN encoder with GRU updates infers q(z₀), a neural ODE evolves the latent state, and an MLP decoder returns POD coefficients.</li>
+        <li><b>Inference.</b> The initial state z₀ is refined per patient with 500 Adam steps.</li>
+        <li><b>Grouping.</b> Functional PCA of the latent trajectories, then a spherical Gaussian mixture with k = 2 over 15 dimensions.</li>
+        <li><b>Accuracy.</b> R² = 0.85 for velocity coefficients, R² = 0.87 for pressure coefficients; outperforms several sequence baselines.</li>
+      </ul>
+    </details>
+  </div>
+</section>
+
+<footer>
+  <p><strong style="color:var(--ink)">Yufan (Viola) Wu</strong> is a PhD candidate at Washington University in St. Louis. She works on computational vascular biomechanics, generative models of anatomy, and hemodynamic simulation, and is open to industry collaboration.</p>
+  <p><a href="https://www.linkedin.com/in/viola-w-0440a3196/">LinkedIn</a> &nbsp;&nbsp; <a href="https://github.com/ViolaYFW">GitHub</a></p>
+</footer>
+
+</main>
+</body>
+</html>
