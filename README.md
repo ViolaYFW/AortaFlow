@@ -4,7 +4,7 @@
 
 - Two distinct flow components found across 159 patients
 - Manuscript in preparation
-- Project page: https://violayfw.github.io/aortaflow/
+- Project page: https://violayfw.github.io/AortaFlow/
 - Companion project: [Beyond Diameter](https://violayfw.github.io/beyond-diameter/), a generative shape model of the aorta
 
 ---
