@@ -4,7 +4,7 @@
 
 - Two distinct flow components found across 159 patients
 - Manuscript in preparation
-- Project page: https://violayfw.github.io/AortaFlow/
+- Project page: https://violayfw.github.io/aortaflow/
 - Companion project: [Beyond Diameter](https://violayfw.github.io/beyond-diameter/), a generative shape model of the aorta
 
 ---
@@ -31,6 +31,8 @@ At inference, z₀ is refined per patient with 500 Adam steps — no retraining 
 ## Accuracy
 
 R² = 0.85 for velocity, R² = 0.87 for pressure, outperforming several baselines.
+
+![Velocity fields, ground truth vs prediction](assets/fig2-velocity-fields.png)
 
 ![POD predictions](assets/fig2-pod-prediction.jpg)
 
