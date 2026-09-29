@@ -177,11 +177,15 @@ footer p{max-width:40rem}
   <div class="text">
     <h2 id="fidelity">It reproduces the flow faithfully</h2>
     <p>Predicted flow tracks the ground truth closely across the cardiac cycle, with <span class="num">R² = 0.85</span> for velocity.</p>
-    <p>The same model also recovers pressure with <span class="num">R² = 0.87</span>, even though pressure was not the focus. It outperformed several baselines.</p>
+    <p>Below the surface, the same model also recovers pressure with <span class="num">R² = 0.87</span>, even though pressure was not the focus. It outperformed several baselines.</p>
   </div>
+  <figure>
+    <div class="plate"><img src="assets/fig2-velocity-fields.png?v=2" alt="Nine aorta renderings in three rows: ground-truth velocity fields at three time points, the model's predictions below them, and the absolute error in the bottom row." width="989" height="692" loading="lazy"></div>
+    <figcaption><b>Figure 2.</b> Velocity fields at three points in the cardiac cycle. Top row: ground truth. Middle row: the model's prediction. Bottom row: absolute error between the two, on its own scale. The prediction keeps the structure of the true field, including the patterns in the arch, and the error stays around 20 cm/s or below against velocities reaching 140 cm/s.</figcaption>
+  </figure>
   <figure class="mid">
     <div class="plate"><img src="assets/fig2-pod-prediction.jpg" alt="Four line plots comparing ground truth and predicted POD coefficients over the normalized cardiac cycle for the first two velocity modes and the first two pressure modes; the curves overlap closely." width="2048" height="1587" loading="lazy"></div>
-    <figcaption><b>Figure 2.</b> Ground truth (pink) and prediction (blue) for a representative patient. (A, B) First two velocity modes. (C, D) First two pressure modes.</figcaption>
+    <figcaption><b>Figure 3.</b> Ground truth (pink) and prediction (blue) for a representative patient. (A, B) First two velocity modes. (C, D) First two pressure modes.</figcaption>
   </figure>
 </section>
 
@@ -193,7 +197,7 @@ footer p{max-width:40rem}
   </div>
   <figure class="narrow">
     <div class="plate"><img src="assets/fig3-phenotypes.png" alt="Scatter plot of patients in the first two dimensions of the latent trajectory space, with two overlapping cluster ellipses: one group of 41 patients and one of 118." width="489" height="357" loading="lazy"></div>
-    <figcaption><b>Figure 3.</b> The cohort in latent trajectory space. Component 0 holds 41 patients, component 1 holds 118.</figcaption>
+    <figcaption><b>Figure 4.</b> The cohort in latent trajectory space. Component 0 holds 41 patients, component 1 holds 118.</figcaption>
   </figure>
 
   <div class="text">
@@ -235,7 +239,7 @@ footer p{max-width:40rem}
   </div>
   <figure>
     <div class="plate"><img src="assets/fig4-flow-features.jpg" alt="Eight dot plots comparing the two components on peak time, peak normalized radius, peak angle, time concentration, peak velocity, mean velocity, ascending flow displacement, and deceleration, with significance markers." width="3057" height="2067" loading="lazy"></div>
-    <figcaption><b>Figure 4.</b> Flow features by component. All eight differ significantly between the two groups.</figcaption>
+    <figcaption><b>Figure 5.</b> Flow features by component. All eight differ significantly between the two groups.</figcaption>
   </figure>
 </section>
 
